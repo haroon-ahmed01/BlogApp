@@ -81,7 +81,6 @@ const submitForm = async () => {
   success.value = ''
 
   try {
-    // FIXED: Create proper form data structure
     const formData = new FormData()
     formData.append('title', form.title)
     formData.append('description', form.description)

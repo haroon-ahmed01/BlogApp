@@ -138,14 +138,12 @@ const uploadFile = async (file) => {
     const formData = new FormData()
     formData.append('file', file)
 
-    // FIXED: Use the correct API endpoint
     const response = await $fetch(`${apiURL}/upload`, {
       method: 'POST',
       body: formData
     })
 
     if (response.success) {
-      // The server returns the relative path, use it directly
       const serverUrl = response.url // This should be like "/uploads/filename.jpg"
       
       // Update the preview to show the server image

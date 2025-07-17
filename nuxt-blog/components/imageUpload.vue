@@ -42,32 +42,13 @@
       </div>
       <div v-if="error" class="error-message">{{ error }}</div>
     </div>
-    
-    <!-- Alternative: Manual URL input - only show when no image is uploaded -->
-    <div v-if="!previewUrl" class="form-group">
-      <label for="image-url">Or enter image URL</label>
-      <input
-        id="image-url"
-        v-model="imageUrl"
-        type="url"
-        class="form-control"
-        placeholder="https://example.com/image.jpg"
-        @input="handleUrlInput"
-      />
-    </div>
-    
-    <!-- Show current image URL when image is selected -->
-    <div v-else class="form-group">
-      <label>Selected Image URL:</label>
-      <div class="url-display">
-        <code>{{ imageUrl }}</code>
-        <button @click="removeImage" class="btn-change">Change Image</button>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
+const config = useRuntimeConfig()
+const apiURL = config.public.apiURL
+
 const props = defineProps({
   modelValue: {
     type: String,
@@ -82,25 +63,30 @@ const uploading = ref(false)
 const error = ref('')
 const previewUrl = ref('')
 const fileName = ref('')
-const imageUrl = ref('')
 
 // Initialize with existing value
 onMounted(() => {
   if (props.modelValue) {
-    imageUrl.value = props.modelValue
-    previewUrl.value = props.modelValue
+    // Convert relative URLs to absolute URLs for display
+    if (props.modelValue.startsWith('/uploads/')) {
+      previewUrl.value = `${apiURL.replace('/api', '')}${props.modelValue}`
+    } else {
+      previewUrl.value = props.modelValue
+    }
     fileName.value = 'Current image'
   }
 })
 
 // Watch for changes in modelValue prop
 watch(() => props.modelValue, (newValue) => {
-  if (newValue && newValue !== imageUrl.value) {
-    imageUrl.value = newValue
-    previewUrl.value = newValue
+  if (newValue && newValue !== fileName.value) {
+    if (newValue.startsWith('/uploads/')) {
+      previewUrl.value = `${apiURL.replace('/api', '')}${newValue}`
+    } else {
+      previewUrl.value = newValue
+    }
     fileName.value = 'Current image'
   } else if (!newValue) {
-    imageUrl.value = ''
     previewUrl.value = ''
     fileName.value = ''
   }
@@ -152,19 +138,19 @@ const uploadFile = async (file) => {
     const formData = new FormData()
     formData.append('file', file)
 
-    // Use Nuxt's $fetch with proper error handling
-    const response = await $fetch('/api/upload', {
+    // FIXED: Use the correct API endpoint
+    const response = await $fetch(`${apiURL}/upload`, {
       method: 'POST',
       body: formData
     })
 
     if (response.success) {
-      // In Nuxt 3, files in public directory are served from root
-      const serverUrl = response.url // This should be like "/uploads/filename.webp"
+      // The server returns the relative path, use it directly
+      const serverUrl = response.url // This should be like "/uploads/filename.jpg"
       
-      previewUrl.value = serverUrl
+      // Update the preview to show the server image
+      previewUrl.value = `${apiURL.replace('/api', '')}${serverUrl}`
       fileName.value = response.originalName || file.name
-      imageUrl.value = serverUrl
       emit('update:modelValue', serverUrl)
     } else {
       throw new Error(response.message || 'Upload failed')
@@ -178,38 +164,15 @@ const uploadFile = async (file) => {
   }
 }
 
-const handleUrlInput = () => {
-  error.value = ''
-  if (imageUrl.value) {
-    // Validate URL format
-    try {
-      new URL(imageUrl.value)
-      previewUrl.value = imageUrl.value
-      fileName.value = 'External image'
-      emit('update:modelValue', imageUrl.value)
-    } catch (e) {
-      error.value = 'Please enter a valid image URL'
-      previewUrl.value = ''
-      fileName.value = ''
-      emit('update:modelValue', '')
-    }
-  } else {
-    previewUrl.value = ''
-    fileName.value = ''
-    emit('update:modelValue', '')
-  }
-}
-
 const handleImageError = (event) => {
   console.error('Image failed to load:', previewUrl.value)
   console.error('Image error event:', event)
-  error.value = 'Failed to load image. Please check the URL or try uploading again.'
+  error.value = 'Failed to load image. Please try uploading again.'
 }
 
 const removeImage = () => {
   previewUrl.value = ''
   fileName.value = ''
-  imageUrl.value = ''
   error.value = ''
   emit('update:modelValue', '')
   if (fileInput.value) {
@@ -232,21 +195,6 @@ const removeImage = () => {
   margin-bottom: 0.5rem;
   font-weight: 500;
   color: #374151;
-}
-
-.form-control {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .upload-container {
@@ -441,105 +389,5 @@ const removeImage = () => {
 .upload-success svg {
   flex-shrink: 0;
   color: #28a745;
-}
-
-/* Mobile Responsive Design */
-@media (max-width: 768px) {
-  .upload-area {
-    padding: 1rem;
-    min-height: 150px;
-  }
-  
-  .upload-placeholder svg {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .upload-placeholder p {
-    font-size: 0.875rem;
-  }
-  
-  .upload-hint {
-    font-size: 0.75rem;
-  }
-  
-  .preview-image {
-    max-height: 250px;
-  }
-  
-  .url-display {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-  
-  .url-display code {
-    font-size: 0.75rem;
-  }
-  
-  .btn-change {
-    width: 100%;
-  }
-  
-  .upload-success {
-    flex-direction: column;
-    text-align: center;
-    gap: 0.25rem;
-  }
-  
-  .upload-success span {
-    font-size: 0.75rem;
-  }
-}
-
-/* Tablet Responsive Design */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .preview-image {
-    max-width: 400px;
-    max-height: 300px;
-  }
-  
-  .upload-area {
-    padding: 1.75rem;
-  }
-}
-
-/* Large Screen Optimization */
-@media (min-width: 1025px) {
-  .preview-image {
-    max-width: 600px;
-    max-height: 450px;
-  }
-  
-  .upload-area {
-    padding: 2rem;
-    min-height: 220px;
-  }
-}
-
-/* Extra Large Screen Optimization */
-@media (min-width: 1440px) {
-  .preview-image {
-    max-width: 700px;
-    max-height: 500px;
-  }
-  
-  .upload-area {
-    padding: 2.5rem;
-    min-height: 240px;
-  }
-}
-
-/* Ultra-wide Screen Optimization */
-@media (min-width: 1920px) {
-  .preview-image {
-    max-width: 800px;
-    max-height: 600px;
-  }
-  
-  .upload-area {
-    padding: 3rem;
-    min-height: 280px;
-  }
 }
 </style>

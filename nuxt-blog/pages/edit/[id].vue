@@ -23,6 +23,9 @@
 </template>
 
 <script setup>
+const config = useRuntimeConfig()
+const apiURL = config.public.apiURL
+
 const route = useRoute()
 const postId = route.params.id
 
@@ -30,8 +33,8 @@ useHead({
   title: 'Edit Post - My Blog'
 })
 
-// Fetch post data
-const { data: post, pending, error } = await useFetch(`/api/posts/${postId}`)
+// Fetch post data from Express backend
+const { data: post, pending, error } = await useFetch(`${apiURL}/posts/${postId}`)
 
 // Handle post not found
 if (error.value?.statusCode === 404) {

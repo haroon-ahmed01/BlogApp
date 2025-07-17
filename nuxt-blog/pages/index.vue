@@ -37,6 +37,9 @@
 </template>
 
 <script setup>
+const config = useRuntimeConfig()
+const apiURL = config.public.apiURL
+
 // SEO
 useHead({
   title: 'My Blog - Home',
@@ -45,8 +48,8 @@ useHead({
   ]
 })
 
-// Fetch posts
-const { data: posts, pending, error, refresh } = await useFetch('/api/posts')
+// Fetch posts from Express backend
+const { data: posts, pending, error, refresh } = await useFetch(`${apiURL}/posts`)
 
 const handleDelete = (postId) => {
   refresh()

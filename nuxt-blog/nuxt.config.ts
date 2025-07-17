@@ -5,7 +5,8 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     public: {
-      baseURL: process.env.BASE_URL || 'http://localhost:3000'
+      baseURL: 'http://localhost:3000',
+      apiURL: 'http://localhost:5001/api'
     }
   },
   nitro: {
